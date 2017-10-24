@@ -38,7 +38,7 @@ class TweetNode {
 }
 
 for (x in btc_json) {
-  console.log(btc_json[x]);
+  console.log(btc_json[x].timestamp);
 }
 
 // for all values in the list
