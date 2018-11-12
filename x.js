@@ -2,98 +2,64 @@ let analyze = require('Sentimental').analyze,
   positivity = require('Sentimental').positivity,
   negativity = require('Sentimental').negativity
 
+// json file to analyze for  sentiment
+const btc_json = require("./10kbtc.json")
 
-var btc_json = require("./10kbtc.json")
-
-let lst_of_text_nodes = []
-
-
-// volume
-// date
-// sentiment
-
-// solvent
-
-let create_solvent = function(date, sentiment, volume) {
-  return {
-    date : date,
-    sentiment : sentiment,
-    volume : volume
+// table for storing and sorting word:frequency tuples
+class HackTable {
+  constructor() {
+    this.backbone = {}
+  }
+  add(elem) {
+    this.backbone[elem] ? ++this.backbone[elem] : this.backbone[elem] = 1
+  }
+  sort() {
+    let sorting_arr = []
+    for (let x in this.backbone) {
+      sorting_arr.push([this.backbone[x], x])
+    }
+    for (let i =  0; i < sorting_arr.length-1;i++) {
+      for (let j =  0; j < sorting_arr.length-i-1;j++) {
+        if (sorting_arr[j][0] < sorting_arr[j+1][0]) {
+          let tmp = sorting_arr[j]
+          sorting_arr[j] = sorting_arr[j+1]
+          sorting_arr[j+1] = tmp
+        }
+      }
+    }
+    return sorting_arr
   }
 }
 
-class Solvent {
-  constructor (date, sentiment, volume) {
-    this.date = date
-    this.sentiment = sentiment
-    this.volume = volume
-  }
+// move words from object  structure  to list of word frequency tuples
+let get_word_freq = (text_analysis) => {
+  let hack_table = new HackTable()
+  let word_struct = text_analysis.map((x) => {
+    let short_list =  x.positive.words.concat(x.negative.words)
+    for (let xx in short_list) {
+      hack_table.add(short_list[xx])
+    }
+  })
+  console.log('word frequency :', hack_table.sort().slice(0,9))
 }
-
-class TweetNode {
-  constructor(date, sentiment) {
-    this.date = date
-    this.sentiment = sentiment
-  }
-}
-
-for (x in btc_json) {
-  console.log(btc_json[x].timestamp);
-}
-
-// for all values in the list
-// for (let x = 0; x < btc_json.length; ++x) {
-//   lst_of_text_nodes.push(btc_json[x].text)
-// }
-
 
 let main = function() {
-  let max = 0
   let running_total = 0
-  // for all elems in lst_of_text_nodes
-  for (let x = 0; x < lst_of_text_nodes.length; x++) {
-    // call analyze function, pass in the text node
-    let result_obj = analyze(lst_of_text_nodes[x])
-    // extract the score
-    //I like you so much
-    running_total += result_obj.score
-    result_obj.score < max ? max = result_obj.score : null
-    // console.log(result_obj);
-    console.log(lst_of_text_nodes[x] + ' ::: ' +result_obj.score);
+  let lst_of_text_nodes = btc_json.map((elem) => elem.text)
 
-  }
+  let text_analysis = lst_of_text_nodes.map((elem) => analyze(elem))
 
-  console.log('largest value :', max);
-  console.log('average :', running_total/lst_of_text_nodes.length);
+  get_word_freq(text_analysis)
+
+  let text_analysis_score = text_analysis.map((elem) => elem.score)
+  let reduce_sum = (accumulator, current) => accumulator + current;
+  running_total = text_analysis_score.reduce(reduce_sum)
+
+  console.log(
+    "\naverage sentiment :", running_total/lst_of_text_nodes.length
+    , "\nmax sentiment :", Math.max(...text_analysis_score)
+    , "\nmin sentiment :", Math.min(...text_analysis_score)
+  )
 }
 
-
-/*
-{
-  score: -3,
-  comparative: -1,
-
-  positive: {
-    score: 0,
-    comparative: 0,
-    words: []
-  },
-  negative: {
-    score: 3,
-    comparative: 1,
-    words: [ 'terrible' ]
-  }
-}
-*/
-
-
-// let tweet_scores = {
-//   '10/7/2017' : 2.5,
-//   '10/6/2017' : 2.5,
-//   '10/5/2017' : 2.5,
-//   '10/4/2017' : 2.5,
-//   '10/3/2017' : 2.5,
-//   '10/2/2017' : 2.5
-// }
-//
-// console.log(tweet_scores)
+main()
